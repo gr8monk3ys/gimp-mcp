@@ -1615,6 +1615,13 @@ class MCPPlugin(Gimp.PlugIn):
             if isinstance(value, (int, float)) and not isinstance(value, bool) and lo is not None:
                 if not lo <= value <= hi:
                     raise ValueError(f"{op_name} property '{key}'={value} is outside [{lo}, {hi}]")
+            # GIMP 3.2 exposes GEGL enum properties as GimpParamChoice (string
+            # nicks); an unknown nick is silently ignored, so reject it here.
+            if pspec.__gtype__.name == "GimpParamChoice":
+                choice = Gimp.param_spec_choice_get_choice(pspec)
+                if not choice.is_valid(value):
+                    raise ValueError(f"{op_name} property '{key}'={value!r} is not one of "
+                                     f"{', '.join(choice.list_nicks())}")
             config.set_property(key, value)
         filtr.update()
         drawable.merge_filter(filtr)
